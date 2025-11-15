@@ -2,11 +2,11 @@
   "name": "book_viewer",
   "private": true,
   "version": "0.0.0",
-  "main": "dist-electron/main.js",
+  "main": "dist-electron/electron/main.js",
   "scripts": {
     "dev:renderer": "vite",
     "dev:electron": "tsc -w -p electron",
-    "dev:start": "cross-env NODE_ENV=development VITE_DEV_SERVER_URL=http://localhost:5173 wait-on http://localhost:5173 && wait-on ./dist-electron/main.js && electron .",
+    "dev:start": "cross-env NODE_ENV=development VITE_DEV_SERVER_URL=http://localhost:5173 wait-on http://localhost:5173 && wait-on ./dist-electron/electron/main.js && electron .",
     "dev": "concurrently -k \"npm:dev:electron\" \"npm:dev:renderer\" \"npm:dev:start\"",
     "build:renderer": "vite build",
     "build:electron": "tsc -p electron",
@@ -15,9 +15,10 @@
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
-    "electron": "^39.0.0",
+    "electron-rebuild": "^3.2.9",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.5",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {
@@ -28,6 +29,7 @@
     "@vitejs/plugin-react": "^5.0.4",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
+    "electron": "^28.3.3",
     "electron-builder": "^26.0.12",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
