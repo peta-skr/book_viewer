@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const electron_1 = require("electron");
+electron_1.contextBridge.exposeInMainWorld("mangata", {
+    ping: () => "pong",
+    pickFolder: () => electron_1.ipcRenderer.invoke("pick-folder"),
+    addFolder: (absPath) => electron_1.ipcRenderer.invoke("add-folder", absPath),
+    listFolder: () => electron_1.ipcRenderer.invoke("list-folder"),
+    loadImage: (filePath) => electron_1.ipcRenderer.invoke("load-image", filePath),
+});
