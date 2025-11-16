@@ -1,7 +1,7 @@
 // electron/main.ts
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "node:path";
-import { importFolder, listBooks, scanFolder } from "./importer";
+import { getBookImage, importFolder, listBooks, scanFolder } from "./importer";
 import fs from "node:fs/promises";
 
 let win: BrowserWindow | null = null;
@@ -54,6 +54,12 @@ ipcMain.handle("load-image", async (_event, filePath: string) => {
       : "image/jpeg"; // 雑に判定
 
   return `data:${mime};base64;${buf.toString("base64")}`;
+});
+
+ipcMain.handle("load-book", async (_event, bookId: string) => {
+  console.log(bookId);
+
+  return getBookImage(bookId);
 });
 
 app.whenReady().then(createWindow);

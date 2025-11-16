@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import db from "./db";
-import type { BookInfo } from "../types/book";
+import type { BookInfo, ImageInfo } from "../types/book";
 
 const SUPPORTED = [".jpeg", ".jpg", ".png"];
 
@@ -89,8 +89,6 @@ export async function listBooks() {
       };
     }) as BookInfo[];
 
-  console.log(books);
-
   books = await Promise.all(
     books.map(async (book) => {
       const buf = await fs.promises.readFile(book.coverPath);
@@ -110,6 +108,50 @@ export async function listBooks() {
       return {
         ...book,
         coverPath: dataUrl, // ← Data URL に置き換える
+      };
+    })
+  );
+
+  return books;
+}
+
+// 特定の本の画像を取得
+export async function getBookImage(bookId: string) {
+  console.log(bookId);
+
+  let books = db
+    .prepare(`SELECT * FROM images WHERE book_id = :bookId ORDER BY page_order`)
+    .all({ bookId: bookId })
+    .map((row) => {
+      return {
+        id: row.id,
+        bookId: row.book_id,
+        imagePath: row.image_path,
+        pageOrder: row.page_order,
+      };
+    }) as ImageInfo[];
+
+  console.log(books);
+
+  books = await Promise.all(
+    books.map(async (book) => {
+      const buf = await fs.promises.readFile(book.imagePath);
+
+      // 拡張子から MIME を判定
+      const ext = path.extname(book.imagePath).toLowerCase();
+      const mime =
+        ext === ".png"
+          ? "image/png"
+          : ext === ".webp"
+          ? "image/webp"
+          : "image/jpeg"; // デフォルト jpeg
+
+      const base64 = buf.toString("base64");
+      const dataUrl = `data:${mime};base64,${base64}`;
+
+      return {
+        ...book,
+        imagePath: dataUrl, // ← Data URL に置き換える
       };
     })
   );

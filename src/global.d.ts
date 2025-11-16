@@ -1,3 +1,5 @@
+import type { BookInfo, ImageInfo } from "../types/book";
+
 export {};
 
 type AddFolderResult = {
@@ -14,6 +16,7 @@ declare global {
       addFolder: (absPath: string) => Promise<AddFolderResult>;
       listFolder: () => Promise<BookInfo[] | null>;
       loadImage: (filePath: string) => Promise<string>;
+      loadBook: (bookId: string) => Promise<ImageInfo[]>;
     };
   }
 }
