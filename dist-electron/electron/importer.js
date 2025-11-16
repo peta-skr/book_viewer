@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.importFolder = void 0;
 exports.scanFolder = scanFolder;
 exports.listBooks = listBooks;
+exports.getBookImage = getBookImage;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const db_1 = __importDefault(require("./db"));
@@ -69,7 +70,6 @@ async function listBooks() {
             folderPath: row.folder_path,
         };
     });
-    console.log(books);
     books = await Promise.all(books.map(async (book) => {
         const buf = await fs_1.default.promises.readFile(book.coverPath);
         // 拡張子から MIME を判定
@@ -84,6 +84,39 @@ async function listBooks() {
         return {
             ...book,
             coverPath: dataUrl, // ← Data URL に置き換える
+        };
+    }));
+    return books;
+}
+// 特定の本の画像を取得
+async function getBookImage(bookId) {
+    console.log(bookId);
+    let books = db_1.default
+        .prepare(`SELECT * FROM images WHERE book_id = :bookId ORDER BY page_order`)
+        .all({ bookId: bookId })
+        .map((row) => {
+        return {
+            id: row.id,
+            bookId: row.book_id,
+            imagePath: row.image_path,
+            pageOrder: row.page_order,
+        };
+    });
+    console.log(books);
+    books = await Promise.all(books.map(async (book) => {
+        const buf = await fs_1.default.promises.readFile(book.imagePath);
+        // 拡張子から MIME を判定
+        const ext = path_1.default.extname(book.imagePath).toLowerCase();
+        const mime = ext === ".png"
+            ? "image/png"
+            : ext === ".webp"
+                ? "image/webp"
+                : "image/jpeg"; // デフォルト jpeg
+        const base64 = buf.toString("base64");
+        const dataUrl = `data:${mime};base64,${base64}`;
+        return {
+            ...book,
+            imagePath: dataUrl, // ← Data URL に置き換える
         };
     }));
     return books;
