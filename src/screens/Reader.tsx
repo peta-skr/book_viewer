@@ -31,17 +31,21 @@ const Reader: React.FC = () => {
     setCurrentImage(cacheRef.current.get(index));
   };
 
+  // 前のページ遷移メソッド
   const onPrevPage = () => {
-    onChangePage(currentPageIndex - 1);
+    onChangePage(Math.max(currentPageIndex - 1, 0));
   };
+
+  // 次のページ遷移メソッド
   const onNextPage = () => {
-    onChangePage(currentPageIndex + 1);
+    onChangePage(Math.min(currentPageIndex + 1, book?.pageCount));
   };
 
   useEffect(() => {
     console.log(currentImage);
   }, [currentImage]);
 
+  // 初期処理
   useEffect(() => {
     const run = async () => {
       if (id !== undefined) {
@@ -58,6 +62,25 @@ const Reader: React.FC = () => {
 
     run();
   }, []);
+
+  // キーボードイベント
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        onNextPage();
+      } else if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        onPrevPage();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    // return () => {
+    //   window.removeEventListener("keydown", handleKeyDown);
+    // };
+  }, [onNextPage, onPrevPage]);
 
   return (
     <div
