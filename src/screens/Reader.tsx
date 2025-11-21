@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { BookInfo, ImageInfo } from "../../types/book";
+import useFullscreen from "../hooks/useFullscreen";
 
 const Reader: React.FC = () => {
   const { id } = useParams(); // urlのパラメータ取得
@@ -41,6 +42,12 @@ const Reader: React.FC = () => {
     onChangePage(Math.min(currentPageIndex + 1, book?.pageCount));
   };
 
+  const {
+    ref: containerRef,
+    isFullscreen,
+    toggle,
+  } = useFullscreen<HTMLDivElement>();
+
   useEffect(() => {
     console.log(currentImage);
   }, [currentImage]);
@@ -72,18 +79,22 @@ const Reader: React.FC = () => {
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
         onPrevPage();
+      } else if (e.key === "f" || e.key === "F") {
+        e.preventDefault();
+        toggle();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
 
-    // return () => {
-    //   window.removeEventListener("keydown", handleKeyDown);
-    // };
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, [onNextPage, onPrevPage]);
 
   return (
     <div
+      ref={containerRef}
       style={{
         height: "100vh",
         display: "flex",
@@ -104,6 +115,9 @@ const Reader: React.FC = () => {
       >
         <button onClick={() => nav("/")} style={{ padding: "4px 8px" }}>
           ⬅ Home
+        </button>
+        <button style={{ marginLeft: 16 }} onClick={toggle}>
+          {isFullscreen ? "通常表示" : "全画面"}
         </button>
         <div
           style={{
