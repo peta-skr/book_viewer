@@ -8,8 +8,6 @@ export default function Home() {
 
     if (!folder) return;
     await window.mangata.addFolder(folder);
-
-    console.log("登録しました");
   }
 
   return (

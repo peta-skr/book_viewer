@@ -12,8 +12,9 @@ const Reader: React.FC = () => {
 
   const [currentImage, setCurrentImage] = useState<ImageInfo>(); // 現在のImage情報を保持
   const [currentPageIndex, setCurrentPageIndex] = useState(
-    book?.currentPageIndex ?? 0
+    book?.lastPageIndex ?? 0
   );
+  const saveTimer = useRef<number | null>(null);
 
   let cacheRef = useRef(new Map<number, ImageInfo>()); // key: image.pageOrder value: image情報
   const pageDisplayNumber = currentPageIndex + 1;
@@ -25,11 +26,13 @@ const Reader: React.FC = () => {
   };
 
   const onChangePage = (index: number) => {
-    console.log(cacheRef.current.get(index));
-    console.log(cacheRef.current);
-
     setCurrentPageIndex(index);
     setCurrentImage(cacheRef.current.get(index));
+  };
+
+  // 読んだページの保存処理
+  const saveProgress = (nextIndex: number) => {
+    window.mangata.updateLastPage(book.id, nextIndex);
   };
 
   // 前のページ遷移メソッド
@@ -39,7 +42,7 @@ const Reader: React.FC = () => {
 
   // 次のページ遷移メソッド
   const onNextPage = () => {
-    onChangePage(Math.min(currentPageIndex + 1, book?.pageCount));
+    onChangePage(Math.min(currentPageIndex + 1, book.pageCount - 1));
   };
 
   const {
@@ -48,16 +51,13 @@ const Reader: React.FC = () => {
     toggle,
   } = useFullscreen<HTMLDivElement>();
 
-  useEffect(() => {
-    console.log(currentImage);
-  }, [currentImage]);
+  useEffect(() => {}, [currentImage]);
 
   // 初期処理
   useEffect(() => {
     const run = async () => {
       if (id !== undefined) {
         const imgs = await window.mangata.loadBook(id);
-        console.log(imgs);
 
         for (let img of imgs) {
           cacheRef.current.set(img.pageOrder, img);
@@ -91,6 +91,25 @@ const Reader: React.FC = () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onNextPage, onPrevPage]);
+
+  // pageIndexが変わるたびにでバウンスして保存
+  useEffect(() => {
+    // 直前のタイマーをクリア
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+    }
+
+    //デバウンス：300ミリ秒後に保存
+    saveTimer.current = setTimeout(() => {
+      saveProgress(currentPageIndex);
+    }, 300);
+
+    return () => {
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+      }
+    };
+  }, [currentPageIndex]);
 
   return (
     <div

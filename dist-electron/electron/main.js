@@ -51,7 +51,9 @@ electron_1.ipcMain.handle("load-image", async (_event, filePath) => {
     return `data:${mime};base64;${buf.toString("base64")}`;
 });
 electron_1.ipcMain.handle("load-book", async (_event, bookId) => {
-    console.log(bookId);
     return (0, importer_1.getBookImage)(bookId);
+});
+electron_1.ipcMain.handle("update-last-page", (_event, bookId, pageIndex) => {
+    (0, importer_1.updateLastPage)(bookId, pageIndex);
 });
 electron_1.app.whenReady().then(createWindow);

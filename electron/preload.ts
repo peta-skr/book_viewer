@@ -7,4 +7,6 @@ contextBridge.exposeInMainWorld("mangata", {
   listFolder: () => ipcRenderer.invoke("list-folder"),
   loadImage: (filePath: string) => ipcRenderer.invoke("load-image", filePath),
   loadBook: (bookId: string) => ipcRenderer.invoke("load-book", bookId),
+  updateLastPage: (bookId: string, pageIndex: number) =>
+    ipcRenderer.invoke("update-last-page", bookId, pageIndex),
 });
