@@ -1,7 +1,13 @@
 // electron/main.ts
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "node:path";
-import { getBookImage, importFolder, listBooks, scanFolder } from "./importer";
+import {
+  getBookImage,
+  importFolder,
+  listBooks,
+  scanFolder,
+  updateLastPage,
+} from "./importer";
 import fs from "node:fs/promises";
 
 let win: BrowserWindow | null = null;
@@ -57,9 +63,14 @@ ipcMain.handle("load-image", async (_event, filePath: string) => {
 });
 
 ipcMain.handle("load-book", async (_event, bookId: string) => {
-  console.log(bookId);
-
   return getBookImage(bookId);
 });
+
+ipcMain.handle(
+  "update-last-page",
+  (_event, bookId: number, pageIndex: number) => {
+    updateLastPage(bookId, pageIndex);
+  }
+);
 
 app.whenReady().then(createWindow);

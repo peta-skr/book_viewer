@@ -7,6 +7,8 @@ exports.importFolder = void 0;
 exports.scanFolder = scanFolder;
 exports.listBooks = listBooks;
 exports.getBookImage = getBookImage;
+exports.updateLastPage = updateLastPage;
+exports.getBook = getBook;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const db_1 = __importDefault(require("./db"));
@@ -90,7 +92,6 @@ async function listBooks() {
 }
 // 特定の本の画像を取得
 async function getBookImage(bookId) {
-    console.log(bookId);
     let books = db_1.default
         .prepare(`SELECT * FROM images WHERE book_id = :bookId ORDER BY page_order`)
         .all({ bookId: bookId })
@@ -102,7 +103,6 @@ async function getBookImage(bookId) {
             pageOrder: row.page_order,
         };
     });
-    console.log(books);
     books = await Promise.all(books.map(async (book) => {
         const buf = await fs_1.default.promises.readFile(book.imagePath);
         // 拡張子から MIME を判定
@@ -120,4 +120,12 @@ async function getBookImage(bookId) {
         };
     }));
     return books;
+}
+function updateLastPage(bookId, pageIndex) {
+    const stmt = db_1.default.prepare(`UPDATE books SET last_page_index = ? WHERE id = ?`);
+    stmt.run(pageIndex, bookId);
+}
+function getBook(bookId) {
+    const stmt = db_1.default.prepare(`SELECT * FROM books WHERE id = ?`);
+    return stmt.get(bookId);
 }

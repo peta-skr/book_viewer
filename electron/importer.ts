@@ -117,8 +117,6 @@ export async function listBooks() {
 
 // 特定の本の画像を取得
 export async function getBookImage(bookId: string) {
-  console.log(bookId);
-
   let books = db
     .prepare(`SELECT * FROM images WHERE book_id = :bookId ORDER BY page_order`)
     .all({ bookId: bookId })
@@ -130,8 +128,6 @@ export async function getBookImage(bookId: string) {
         pageOrder: row.page_order,
       };
     }) as ImageInfo[];
-
-  console.log(books);
 
   books = await Promise.all(
     books.map(async (book) => {
@@ -157,4 +153,14 @@ export async function getBookImage(bookId: string) {
   );
 
   return books;
+}
+
+export function updateLastPage(bookId: number, pageIndex: number) {
+  const stmt = db.prepare(`UPDATE books SET last_page_index = ? WHERE id = ?`);
+  stmt.run(pageIndex, bookId);
+}
+
+export function getBook(bookId: number) {
+  const stmt = db.prepare(`SELECT * FROM books WHERE id = ?`);
+  return stmt.get(bookId);
 }

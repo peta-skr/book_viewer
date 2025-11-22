@@ -17,6 +17,7 @@ declare global {
       listFolder: () => Promise<BookInfo[] | null>;
       loadImage: (filePath: string) => Promise<string>;
       loadBook: (bookId: string) => Promise<ImageInfo[]>;
+      updateLastPage: (bookId: string, pageIndex: number) => void;
     };
   }
 }

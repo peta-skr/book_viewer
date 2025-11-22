@@ -16,7 +16,6 @@ export default function Library() {
         const list = (await window.mangata.listFolder()) ?? [];
         if (cancelled) return;
         setBookList(list);
-        console.log("loaded books:", list);
       } catch (error) {
         console.error("failed to load books", error);
       } finally {
