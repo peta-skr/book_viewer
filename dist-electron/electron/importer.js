@@ -6,12 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.importFolder = void 0;
 exports.scanFolder = scanFolder;
 exports.listBooks = listBooks;
-exports.getBookImage = getBookImage;
+exports.getBookImagePayload = getBookImagePayload;
 exports.updateLastPage = updateLastPage;
 exports.getBook = getBook;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const db_1 = __importDefault(require("./db"));
+const lib_1 = require("./lib");
 const SUPPORTED = [".jpeg", ".jpg", ".png"];
 // フォルダ内の画像ファイルを探す
 function scanFolder(folderPath) {
@@ -91,35 +92,19 @@ async function listBooks() {
     return books;
 }
 // 特定の本の画像を取得
-async function getBookImage(bookId) {
-    let books = db_1.default
-        .prepare(`SELECT * FROM images WHERE book_id = :bookId ORDER BY page_order`)
-        .all({ bookId: bookId })
-        .map((row) => {
-        return {
-            id: row.id,
-            bookId: row.book_id,
-            imagePath: row.image_path,
-            pageOrder: row.page_order,
-        };
-    });
-    books = await Promise.all(books.map(async (book) => {
-        const buf = await fs_1.default.promises.readFile(book.imagePath);
-        // 拡張子から MIME を判定
-        const ext = path_1.default.extname(book.imagePath).toLowerCase();
-        const mime = ext === ".png"
-            ? "image/png"
-            : ext === ".webp"
-                ? "image/webp"
-                : "image/jpeg"; // デフォルト jpeg
-        const base64 = buf.toString("base64");
-        const dataUrl = `data:${mime};base64,${base64}`;
-        return {
-            ...book,
-            imagePath: dataUrl, // ← Data URL に置き換える
-        };
-    }));
-    return books;
+async function getBookImagePayload(bookId, pageIndex) {
+    let row = db_1.default
+        .prepare(`SELECT * FROM images WHERE book_id = :bookId AND page_order = :pageOrder`)
+        .get({ bookId: bookId, pageOrder: pageIndex });
+    const info = {
+        id: row.id,
+        bookId: row.book_id,
+        imagePath: row.image_path, // そのまま
+        pageOrder: row.page_order,
+        mimeType: (0, lib_1.guessMimeType)(row.image_path),
+    };
+    const buf = await fs_1.default.promises.readFile(info.imagePath);
+    return { info, bytes: new Uint8Array(buf) };
 }
 function updateLastPage(bookId, pageIndex) {
     const stmt = db_1.default.prepare(`UPDATE books SET last_page_index = ? WHERE id = ?`);
