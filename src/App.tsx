@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
-import { HashRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import Home from "./screens/Home";
 import Library from "./screens/Library";
 import Reader from "./screens/Reader";
 
 function App() {
-  const [msg, setMsg] = useState("...");
-
-  useEffect(() => {
-    setMsg(window.mangata?.ping() ?? "no preload");
-  }, []);
-
   return (
     <HashRouter>
       <Routes>

@@ -7,6 +7,6 @@ electron_1.contextBridge.exposeInMainWorld("mangata", {
     addFolder: (absPath) => electron_1.ipcRenderer.invoke("add-folder", absPath),
     listFolder: () => electron_1.ipcRenderer.invoke("list-folder"),
     loadImage: (filePath) => electron_1.ipcRenderer.invoke("load-image", filePath),
-    loadBook: (bookId) => electron_1.ipcRenderer.invoke("load-book", bookId),
+    loadBook: (bookId, pageIndex) => electron_1.ipcRenderer.invoke("load-book", bookId, pageIndex),
     updateLastPage: (bookId, pageIndex) => electron_1.ipcRenderer.invoke("update-last-page", bookId, pageIndex),
 });

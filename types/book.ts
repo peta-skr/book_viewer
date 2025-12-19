@@ -12,4 +12,15 @@ export type ImageInfo = {
   bookId: number;
   imagePath: string;
   pageOrder: number;
+  mimeType: string;
+};
+
+export type ImagePayload = {
+  info: ImageInfo;
+  bytes: Uint8Array;
+};
+
+export type CacheEntry = {
+  objectUrl: string;
+  mimeType: string;
 };

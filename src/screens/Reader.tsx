@@ -1,7 +1,7 @@
 // Reader.tsx
-import React, { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import type { BookInfo, ImageInfo } from "../../types/book";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { data, useLocation, useNavigate, useParams } from "react-router-dom";
+import type { BookInfo, CacheEntry, ImageInfo } from "../../types/book";
 import useFullscreen from "../hooks/useFullscreen";
 
 const Reader: React.FC = () => {
@@ -10,14 +10,50 @@ const Reader: React.FC = () => {
   const location = useLocation(); // 遷移元が渡した状態を取得
   const book = location.state?.book;
 
-  const [currentImage, setCurrentImage] = useState<ImageInfo>(); // 現在のImage情報を保持
+  const [currentImage, setCurrentImage] = useState<string>(); // 現在のImage情報を保持
   const [currentPageIndex, setCurrentPageIndex] = useState(
     book?.lastPageIndex ?? 0
   );
   const saveTimer = useRef<number | null>(null);
 
-  let cacheRef = useRef(new Map<number, ImageInfo>()); // key: image.pageOrder value: image情報
+  const cacheRef = useRef(new Map<number, CacheEntry>()); // key: image.pageOrder value: image情報
+  const CACHE_RANGE = 3;
+
   const pageDisplayNumber = currentPageIndex + 1;
+
+  function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+    // bytes が SharedArrayBuffer を参照してても、ArrayBuffer にコピーして返す
+    const copy = new Uint8Array(bytes.byteLength);
+    copy.set(bytes);
+    return copy.buffer;
+  }
+
+  function bytesToObjectUrl(bytes: Uint8Array, mimeType: string) {
+    const ab = toArrayBuffer(bytes);
+    const blob = new Blob([ab], { type: mimeType });
+    return URL.createObjectURL(blob);
+  }
+
+  async function getOrLoadObjectUrl(bookId: string, pageOrder: number) {
+    const cached = cacheRef.current.get(pageOrder);
+    if (cached) return cached.objectUrl;
+
+    const { info, bytes } = await window.mangata.loadBook(bookId, pageOrder);
+    const objectUrl = bytesToObjectUrl(bytes, info.mimeType);
+    console.log(objectUrl);
+
+    cacheRef.current.set(pageOrder, { objectUrl, mimeType: info.mimeType });
+    return objectUrl;
+  }
+
+  function cleanupCache(currentPage: number) {
+    for (const [page, entry] of cacheRef.current) {
+      if (Math.abs(page - currentPage) > CACHE_RANGE) {
+        URL.revokeObjectURL(entry.objectUrl);
+        cacheRef.current.delete(page);
+      }
+    }
+  }
 
   const handleChangeRange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
     if (!onChangePage) return;
@@ -25,9 +61,8 @@ const Reader: React.FC = () => {
     onChangePage(nextIndex);
   };
 
-  const onChangePage = (index: number) => {
+  const onChangePage = async (index: number) => {
     setCurrentPageIndex(index);
-    setCurrentImage(cacheRef.current.get(index));
   };
 
   // 読んだページの保存処理
@@ -36,14 +71,14 @@ const Reader: React.FC = () => {
   };
 
   // 前のページ遷移メソッド
-  const onPrevPage = () => {
-    onChangePage(Math.max(currentPageIndex - 1, 0));
-  };
+  const onPrevPage = useCallback(() => {
+    setCurrentPageIndex((i: number) => Math.max(i - 1, 0));
+  }, []);
 
   // 次のページ遷移メソッド
-  const onNextPage = () => {
-    onChangePage(Math.min(currentPageIndex + 1, book.pageCount - 1));
-  };
+  const onNextPage = useCallback(() => {
+    setCurrentPageIndex((i: number) => Math.min(i + 1, book.pageCount - 1));
+  }, [book.pageCount]);
 
   const {
     ref: containerRef,
@@ -57,21 +92,28 @@ const Reader: React.FC = () => {
   useEffect(() => {
     const run = async () => {
       if (id !== undefined) {
-        const imgs = await window.mangata.loadBook(id);
+        const objectUrl = await getOrLoadObjectUrl(id, currentPageIndex);
 
-        for (let img of imgs) {
-          cacheRef.current.set(img.pageOrder, img);
-        }
-
-        setCurrentImage(cacheRef.current.get(currentPageIndex));
+        setCurrentImage(objectUrl);
       }
     };
 
     run();
   }, []);
 
+  // アンマウント時に全解放
+  useEffect(() => {
+    return () => {
+      for (const [, entry] of cacheRef.current)
+        URL.revokeObjectURL(entry.objectUrl);
+      cacheRef.current.clear();
+    };
+  }, []);
+
   // キーボードイベント
   useEffect(() => {
+    console.log("keyborad event");
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") {
         e.preventDefault();
@@ -109,6 +151,39 @@ const Reader: React.FC = () => {
         clearTimeout(saveTimer.current);
       }
     };
+  }, [currentPageIndex]);
+
+  // ページの画像をロード
+  useEffect(() => {
+    let cancelled = false;
+
+    async function run() {
+      const bookId = book.id;
+
+      // 1) 現在ページを表示
+      const currentUrl = await getOrLoadObjectUrl(book.id, currentPageIndex);
+      if (!cancelled) setCurrentImage(currentUrl);
+
+      // 2) 前後は先読み
+      const prefetch = [currentPageIndex - 1, currentPageIndex + 1].filter(
+        (i) => i >= 0 && book.pageCount
+      );
+
+      await Promise.all(prefetch.map((i) => getOrLoadObjectUrl(bookId, i)));
+
+      // 3) 掃除
+      cleanupCache(currentPageIndex);
+    }
+
+    run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPageIndex, book.pageCount]);
+
+  useEffect(() => {
+    cleanupCache(currentPageIndex);
   }, [currentPageIndex]);
 
   return (
@@ -166,9 +241,9 @@ const Reader: React.FC = () => {
           padding: 16,
         }}
       >
-        {currentImage?.imagePath ? (
+        {currentImage ? (
           <img
-            src={currentImage.imagePath}
+            src={currentImage}
             alt={`${book.title} - page ${pageDisplayNumber}`}
             style={{
               maxWidth: "100%",
@@ -200,7 +275,7 @@ const Reader: React.FC = () => {
         <input
           type="range"
           min={0}
-          max={Math.max(book.totalPages - 1, 0)}
+          max={Math.max(book.pageCount - 1, 0)}
           value={currentPageIndex}
           onChange={handleChangeRange}
           style={{ flex: 1 }}
@@ -208,13 +283,13 @@ const Reader: React.FC = () => {
 
         <button
           onClick={onNextPage}
-          disabled={currentPageIndex >= book.totalPages - 1}
+          disabled={currentPageIndex >= book.pageCount - 1}
         >
           次のページ ▶
         </button>
 
         <div style={{ width: 90, textAlign: "right", fontSize: 12 }}>
-          {pageDisplayNumber} / {book.totalPages}
+          {pageDisplayNumber} / {book.pageCount}
         </div>
       </footer>
     </div>

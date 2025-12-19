@@ -2,7 +2,7 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "node:path";
 import {
-  getBookImage,
+  getBookImagePayload,
   importFolder,
   listBooks,
   scanFolder,
@@ -62,9 +62,12 @@ ipcMain.handle("load-image", async (_event, filePath: string) => {
   return `data:${mime};base64;${buf.toString("base64")}`;
 });
 
-ipcMain.handle("load-book", async (_event, bookId: string) => {
-  return getBookImage(bookId);
-});
+ipcMain.handle(
+  "load-book",
+  async (_event, bookId: string, pageIndex: number) => {
+    return getBookImagePayload(bookId, pageIndex);
+  }
+);
 
 ipcMain.handle(
   "update-last-page",
