@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { data, useLocation, useNavigate, useParams } from "react-router-dom";
 import type { BookInfo, CacheEntry, ImageInfo } from "../../types/book";
 import useFullscreen from "../hooks/useFullscreen";
+import { toArrayBuffer } from "../lib/lib";
 
 const Reader: React.FC = () => {
   const { id } = useParams(); // urlのパラメータ取得
@@ -21,13 +22,6 @@ const Reader: React.FC = () => {
 
   const pageDisplayNumber = currentPageIndex + 1;
 
-  function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-    // bytes が SharedArrayBuffer を参照してても、ArrayBuffer にコピーして返す
-    const copy = new Uint8Array(bytes.byteLength);
-    copy.set(bytes);
-    return copy.buffer;
-  }
-
   function bytesToObjectUrl(bytes: Uint8Array, mimeType: string) {
     const ab = toArrayBuffer(bytes);
     const blob = new Blob([ab], { type: mimeType });
@@ -40,7 +34,6 @@ const Reader: React.FC = () => {
 
     const { info, bytes } = await window.mangata.loadBook(bookId, pageOrder);
     const objectUrl = bytesToObjectUrl(bytes, info.mimeType);
-    console.log(objectUrl);
 
     cacheRef.current.set(pageOrder, { objectUrl, mimeType: info.mimeType });
     return objectUrl;
@@ -112,8 +105,6 @@ const Reader: React.FC = () => {
 
   // キーボードイベント
   useEffect(() => {
-    console.log("keyborad event");
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") {
         e.preventDefault();

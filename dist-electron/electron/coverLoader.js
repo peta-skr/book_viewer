@@ -9,7 +9,6 @@ const mime_1 = __importDefault(require("mime")); // なければ `npm i mime`
 // path → data URLのキャッシュ
 const coverCache = new Map();
 async function loadCoverDataUrl(coverPath) {
-    console.log("test");
     if (!coverPath)
         return null;
     // すでに作ったことがあればキャッシュから返す
@@ -31,7 +30,6 @@ async function loadCoverDataUrl(coverPath) {
 }
 const MAX_COVER_CACHE = 10;
 function trimCoverCache() {
-    console.log(coverCache.size);
     while (coverCache.size > MAX_COVER_CACHE) {
         const oldestKey = coverCache.keys().next().value;
         coverCache.delete(oldestKey);

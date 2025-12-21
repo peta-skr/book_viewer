@@ -18,6 +18,7 @@ declare global {
       loadImage: (filePath: string) => Promise<string>;
       loadBook: (bookId: string, pageIndex: number) => Promise<ImagePayload>;
       updateLastPage: (bookId: string, pageIndex: number) => void;
+      loadThumbnail: (bookId: string) => Promise<Uint8Array>;
     };
   }
 }

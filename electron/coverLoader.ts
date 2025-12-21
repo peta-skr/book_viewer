@@ -8,8 +8,6 @@ const coverCache = new Map<string, string>();
 export async function loadCoverDataUrl(
   coverPath: string
 ): Promise<string | null> {
-  console.log("test");
-
   if (!coverPath) return null;
 
   // すでに作ったことがあればキャッシュから返す
@@ -35,8 +33,6 @@ export async function loadCoverDataUrl(
 const MAX_COVER_CACHE = 10;
 
 function trimCoverCache() {
-  console.log(coverCache.size);
-
   while (coverCache.size > MAX_COVER_CACHE) {
     const oldestKey = coverCache.keys().next().value;
     coverCache.delete(oldestKey);

@@ -10,4 +10,6 @@ contextBridge.exposeInMainWorld("mangata", {
     ipcRenderer.invoke("load-book", bookId, pageIndex),
   updateLastPage: (bookId: string, pageIndex: number) =>
     ipcRenderer.invoke("update-last-page", bookId, pageIndex),
+  loadThumbnail: (bookId: string) =>
+    ipcRenderer.invoke("load-thumbnail", bookId),
 });
