@@ -56,4 +56,7 @@ electron_1.ipcMain.handle("load-book", async (_event, bookId, pageIndex) => {
 electron_1.ipcMain.handle("update-last-page", (_event, bookId, pageIndex) => {
     (0, importer_1.updateLastPage)(bookId, pageIndex);
 });
+electron_1.ipcMain.handle("load-thumbnail", async (_event, bookId) => {
+    return (0, importer_1.getBookThumbnail)(bookId);
+});
 electron_1.app.whenReady().then(createWindow);

@@ -5,6 +5,7 @@ export type BookInfo = {
   lastPageIndex: number;
   coverPath: string;
   folderPath: string;
+  mimeType: string;
 };
 
 export type ImageInfo = {
@@ -17,6 +18,11 @@ export type ImageInfo = {
 
 export type ImagePayload = {
   info: ImageInfo;
+  bytes: Uint8Array;
+};
+
+export type BookPayload = {
+  info: BookInfo;
   bytes: Uint8Array;
 };
 

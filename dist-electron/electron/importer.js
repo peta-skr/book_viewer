@@ -9,6 +9,7 @@ exports.listBooks = listBooks;
 exports.getBookImagePayload = getBookImagePayload;
 exports.updateLastPage = updateLastPage;
 exports.getBook = getBook;
+exports.getBookThumbnail = getBookThumbnail;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const db_1 = __importDefault(require("./db"));
@@ -58,38 +59,58 @@ exports.importFolder = db_1.default.transaction((absPath) => {
     }
     return { bookId, title, pageCount: files.length };
 });
+// // 一覧表示取得
+// export async function listBooks() {
+//   let books = db
+//     .prepare(`SELECT * FROM books`)
+//     .all()
+//     .map((row) => {
+//       return {
+//         id: row.id,
+//         title: row.title,
+//         pageCount: row.page_count,
+//         lastPageIndex: row.last_page_index,
+//         coverPath: row.cover_path,
+//         folderPath: row.folder_path,
+//       };
+//     }) as BookInfo[];
+//   books = await Promise.all(
+//     books.map(async (book) => {
+//       const buf = await fs.promises.readFile(book.coverPath);
+//       // 拡張子から MIME を判定
+//       const ext = path.extname(book.coverPath).toLowerCase();
+//       const mime =
+//         ext === ".png"
+//           ? "image/png"
+//           : ext === ".webp"
+//           ? "image/webp"
+//           : "image/jpeg"; // デフォルト jpeg
+//       const base64 = buf.toString("base64");
+//       const dataUrl = `data:${mime};base64,${base64}`;
+//       return {
+//         ...book,
+//         coverPath: dataUrl, // ← Data URL に置き換える
+//       };
+//     })
+//   );
+//   return books;
+// }
 // 一覧表示取得
 async function listBooks() {
-    let books = db_1.default
-        .prepare(`SELECT * FROM books`)
-        .all()
-        .map((row) => {
-        return {
-            id: row.id,
-            title: row.title,
-            pageCount: row.page_count,
-            lastPageIndex: row.last_page_index,
-            coverPath: row.cover_path,
-            folderPath: row.folder_path,
-        };
-    });
-    books = await Promise.all(books.map(async (book) => {
-        const buf = await fs_1.default.promises.readFile(book.coverPath);
-        // 拡張子から MIME を判定
-        const ext = path_1.default.extname(book.coverPath).toLowerCase();
-        const mime = ext === ".png"
-            ? "image/png"
-            : ext === ".webp"
-                ? "image/webp"
-                : "image/jpeg"; // デフォルト jpeg
-        const base64 = buf.toString("base64");
-        const dataUrl = `data:${mime};base64,${base64}`;
-        return {
-            ...book,
-            coverPath: dataUrl, // ← Data URL に置き換える
-        };
+    let rows = db_1.default
+        .prepare(`SELECT id, title, page_count, last_page_index, cover_path, folder_path
+    FROM books
+    ORDER BY id DESC`)
+        .all();
+    return rows.map((r) => ({
+        id: r.id,
+        title: r.title,
+        pageCount: r.page_count,
+        lastPageIndex: r.last_page_index,
+        coverPath: r.cover_path,
+        folderPath: r.folder_path,
+        mimeType: (0, lib_1.guessMimeType)(r.cover_path),
     }));
-    return books;
 }
 // 特定の本の画像を取得
 async function getBookImagePayload(bookId, pageIndex) {
@@ -113,4 +134,19 @@ function updateLastPage(bookId, pageIndex) {
 function getBook(bookId) {
     const stmt = db_1.default.prepare(`SELECT * FROM books WHERE id = ?`);
     return stmt.get(bookId);
+}
+// 本のカバー取得
+async function getBookThumbnail(bookId) {
+    const row = db_1.default
+        .prepare(`SELECT cover_path FROM books WHERE id = ?`)
+        .get(bookId);
+    if (!row?.cover_path)
+        return null;
+    try {
+        const buf = await fs_1.default.promises.readFile(row.cover_path);
+        return new Uint8Array(buf);
+    }
+    catch {
+        return null;
+    }
 }

@@ -3,6 +3,7 @@ import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "node:path";
 import {
   getBookImagePayload,
+  getBookThumbnail,
   importFolder,
   listBooks,
   scanFolder,
@@ -75,5 +76,9 @@ ipcMain.handle(
     updateLastPage(bookId, pageIndex);
   }
 );
+
+ipcMain.handle("load-thumbnail", async (_event, bookId: string) => {
+  return getBookThumbnail(bookId);
+});
 
 app.whenReady().then(createWindow);

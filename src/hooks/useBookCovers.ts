@@ -16,8 +16,6 @@ export function useBookCovers(books: BookInfo[]) {
       for (const book of books) {
         if (!book.coverPath) continue;
 
-        console.log("tre");
-
         const url = await loadCoverDataUrl(book.coverPath);
         if (!url) continue;
 
