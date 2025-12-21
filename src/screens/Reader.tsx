@@ -22,6 +22,8 @@ const Reader: React.FC = () => {
 
   const pageDisplayNumber = currentPageIndex + 1;
 
+  const requestIdRef = useRef(0);
+
   function bytesToObjectUrl(bytes: Uint8Array, mimeType: string) {
     const ab = toArrayBuffer(bytes);
     const blob = new Blob([ab], { type: mimeType });
@@ -79,21 +81,6 @@ const Reader: React.FC = () => {
     toggle,
   } = useFullscreen<HTMLDivElement>();
 
-  useEffect(() => {}, [currentImage]);
-
-  // 初期処理
-  useEffect(() => {
-    const run = async () => {
-      if (id !== undefined) {
-        const objectUrl = await getOrLoadObjectUrl(id, currentPageIndex);
-
-        setCurrentImage(objectUrl);
-      }
-    };
-
-    run();
-  }, []);
-
   // アンマウント時に全解放
   useEffect(() => {
     return () => {
@@ -127,6 +114,8 @@ const Reader: React.FC = () => {
 
   // pageIndexが変わるたびにでバウンスして保存
   useEffect(() => {
+    console.log("test");
+
     // 直前のタイマーをクリア
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
@@ -146,6 +135,7 @@ const Reader: React.FC = () => {
 
   // ページの画像をロード
   useEffect(() => {
+    const requestId = ++requestIdRef.current;
     let cancelled = false;
 
     async function run() {
@@ -153,29 +143,34 @@ const Reader: React.FC = () => {
 
       // 1) 現在ページを表示
       const currentUrl = await getOrLoadObjectUrl(book.id, currentPageIndex);
-      if (!cancelled) setCurrentImage(currentUrl);
+
+      // 最新要求だけ反映
+      if (cancelled || requestId !== requestIdRef.current) return;
+      setCurrentImage(currentUrl);
 
       // 2) 前後は先読み
       const prefetch = [currentPageIndex - 1, currentPageIndex + 1].filter(
-        (i) => i >= 0 && book.pageCount
+        (i) => i >= 0 && i < book.pageCount
       );
 
       await Promise.all(prefetch.map((i) => getOrLoadObjectUrl(bookId, i)));
 
       // 3) 掃除
+      // 最新要求だけ掃除（古い要求が最新を消さないようにする）
+      if (cancelled || requestId !== requestIdRef.current) return;
       cleanupCache(currentPageIndex);
     }
 
-    run();
+    try {
+      run();
+    } catch (e) {
+      console.error("load page failed", e);
+    }
 
     return () => {
       cancelled = true;
     };
   }, [currentPageIndex, book.pageCount]);
-
-  useEffect(() => {
-    cleanupCache(currentPageIndex);
-  }, [currentPageIndex]);
 
   return (
     <div
