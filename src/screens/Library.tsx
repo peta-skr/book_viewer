@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { BookInfo } from "../../types/book";
 import { BookList } from "../components/BookList";
+import toast from "react-hot-toast";
 
 export default function Library() {
   const nav = useNavigate();
@@ -38,11 +39,26 @@ export default function Library() {
     nav(`/book/${book.id}`, { state: { book } });
   };
 
+  async function handleRegisterFolder() {
+    const folder = await window.mangata.pickFolder();
+    const t = toast.loading("登録中...");
+    try {
+      if (!folder) return;
+      const ok = await window.mangata.addFolder(folder);
+      if (!ok) {
+        toast.error("登録できませんでした", { id: t });
+        return;
+      }
+      toast.success("登録しました", { id: t });
+    } catch (error) {
+      console.error(error);
+      toast.error("登録できませんでした", { id: t });
+    }
+  }
+
   return (
     <div className="library">
-      <button onClick={() => nav("/")} style={{ marginBottom: 16 }}>
-        📚 Home
-      </button>
+      <button onClick={handleRegisterFolder}>📂 フォルダ選択</button>
 
       <h1 className="library__title">Library</h1>
 
