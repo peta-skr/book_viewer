@@ -1,28 +1,41 @@
-// Reader.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { data, useLocation, useNavigate, useParams } from "react-router-dom";
-import type { BookInfo, CacheEntry, ImageInfo } from "../../types/book";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import type { CacheEntry } from "../../types/book";
 import useFullscreen from "../hooks/useFullscreen";
 import { toArrayBuffer } from "../lib/lib";
 
 const Reader: React.FC = () => {
-  const { id } = useParams(); // urlのパラメータ取得
+  const { id } = useParams();
   const nav = useNavigate();
-  const location = useLocation(); // 遷移元が渡した状態を取得
+  const location = useLocation();
   const book = location.state?.book;
 
-  const [currentImage, setCurrentImage] = useState<string>(); // 現在のImage情報を保持
+  // book がない場合（直リンク等）を最低限ガード
+  // ※本当はここで book を取得するのが理想だけど、今回はレイアウト改善が主目的
+  if (!book) {
+    return (
+      <div className="reader reader--error">
+        <div className="reader__errorCard">
+          <p>本の情報が見つかりませんでした。</p>
+          <button className="btn" onClick={() => nav("/")}>
+            ライブラリへ戻る
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const [currentImage, setCurrentImage] = useState<string>();
   const [currentPageIndex, setCurrentPageIndex] = useState(
     book?.lastPageIndex ?? 0
   );
-  const saveTimer = useRef<number | null>(null);
 
-  const cacheRef = useRef(new Map<number, CacheEntry>()); // key: image.pageOrder value: image情報
+  const saveTimer = useRef<number | null>(null);
+  const cacheRef = useRef(new Map<number, CacheEntry>());
   const CACHE_RANGE = 3;
+  const requestIdRef = useRef(0);
 
   const pageDisplayNumber = currentPageIndex + 1;
-
-  const requestIdRef = useRef(0);
 
   function bytesToObjectUrl(bytes: Uint8Array, mimeType: string) {
     const ab = toArrayBuffer(bytes);
@@ -50,27 +63,23 @@ const Reader: React.FC = () => {
     }
   }
 
+  const onChangePage = (index: number) => {
+    setCurrentPageIndex(index);
+  };
+
   const handleChangeRange: React.ChangeEventHandler<HTMLInputElement> = (e) => {
-    if (!onChangePage) return;
     const nextIndex = Number(e.target.value);
     onChangePage(nextIndex);
   };
 
-  const onChangePage = async (index: number) => {
-    setCurrentPageIndex(index);
-  };
-
-  // 読んだページの保存処理
   const saveProgress = (nextIndex: number) => {
     window.mangata.updateLastPage(book.id, nextIndex);
   };
 
-  // 前のページ遷移メソッド
   const onPrevPage = useCallback(() => {
     setCurrentPageIndex((i: number) => Math.max(i - 1, 0));
   }, []);
 
-  // 次のページ遷移メソッド
   const onNextPage = useCallback(() => {
     setCurrentPageIndex((i: number) => Math.min(i + 1, book.pageCount - 1));
   }, [book.pageCount]);
@@ -81,7 +90,16 @@ const Reader: React.FC = () => {
     toggle,
   } = useFullscreen<HTMLDivElement>();
 
-  // アンマウント時に全解放
+  const onBackToLibrary = () => {
+    // 履歴があるなら戻る（自然）
+    if (window.history.length > 1) {
+      nav(-1);
+      return;
+    }
+    // 直リンク等は library へ
+    nav("/");
+  };
+
   useEffect(() => {
     return () => {
       for (const [, entry] of cacheRef.current)
@@ -90,7 +108,6 @@ const Reader: React.FC = () => {
     };
   }, []);
 
-  // キーボードイベント
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") {
@@ -102,38 +119,28 @@ const Reader: React.FC = () => {
       } else if (e.key === "f" || e.key === "F") {
         e.preventDefault();
         toggle();
+      } else if (e.key === "Escape") {
+        // 全画面中なら解除、そうでなければ何もしない（好みで）
+        if (isFullscreen) toggle();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onNextPage, onPrevPage, toggle, isFullscreen]);
 
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onNextPage, onPrevPage]);
-
-  // pageIndexが変わるたびにでバウンスして保存
   useEffect(() => {
-    console.log("test");
+    if (saveTimer.current) clearTimeout(saveTimer.current);
 
-    // 直前のタイマーをクリア
-    if (saveTimer.current) {
-      clearTimeout(saveTimer.current);
-    }
-
-    //デバウンス：300ミリ秒後に保存
-    saveTimer.current = setTimeout(() => {
+    saveTimer.current = window.setTimeout(() => {
       saveProgress(currentPageIndex);
     }, 300);
 
     return () => {
-      if (saveTimer.current) {
-        clearTimeout(saveTimer.current);
-      }
+      if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [currentPageIndex]);
 
-  // ページの画像をロード
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     let cancelled = false;
@@ -141,142 +148,93 @@ const Reader: React.FC = () => {
     async function run() {
       const bookId = book.id;
 
-      // 1) 現在ページを表示
       const currentUrl = await getOrLoadObjectUrl(book.id, currentPageIndex);
-
-      // 最新要求だけ反映
       if (cancelled || requestId !== requestIdRef.current) return;
       setCurrentImage(currentUrl);
 
-      // 2) 前後は先読み
       const prefetch = [currentPageIndex - 1, currentPageIndex + 1].filter(
         (i) => i >= 0 && i < book.pageCount
       );
 
       await Promise.all(prefetch.map((i) => getOrLoadObjectUrl(bookId, i)));
 
-      // 3) 掃除
-      // 最新要求だけ掃除（古い要求が最新を消さないようにする）
       if (cancelled || requestId !== requestIdRef.current) return;
       cleanupCache(currentPageIndex);
     }
 
-    try {
-      run();
-    } catch (e) {
-      console.error("load page failed", e);
-    }
+    run().catch((e) => console.error("load page failed", e));
 
     return () => {
       cancelled = true;
     };
-  }, [currentPageIndex, book.pageCount]);
+  }, [currentPageIndex, book.pageCount, book.id]);
 
   return (
     <div
       ref={containerRef}
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#111",
-        color: "#f5f5f5",
-      }}
+      className={`reader ${isFullscreen ? "reader--fs" : ""}`}
     >
-      {/* 上部バー */}
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          padding: "8px 16px",
-          borderBottom: "1px solid #333",
-          gap: 12,
-        }}
-      >
-        <button onClick={() => nav("/")} style={{ padding: "4px 8px" }}>
-          ⬅ Home
+      {/* 上端ホバー領域（透明） */}
+      <div className="reader__hotzone reader__hotzone--top" />
+
+      {/* 下端ホバー領域（透明） */}
+      <div className="reader__hotzone reader__hotzone--bottom" />
+      <header className="reader__header">
+        <button className="btn btn--ghost" onClick={onBackToLibrary}>
+          ⬅ ライブラリ
         </button>
-        <button style={{ marginLeft: 16 }} onClick={toggle}>
-          {isFullscreen ? "通常表示" : "全画面"}
-        </button>
-        <div
-          style={{
-            fontWeight: "bold",
-            fontSize: 16,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-          title={book.title}
-        >
+
+        <div className="reader__title" title={book.title}>
           {book.title}
         </div>
-        <div style={{ marginLeft: "auto", fontSize: 14 }}>
-          {pageDisplayNumber} / {book.pageCount} ページ
+
+        <div className="reader__headerRight">
+          <button className="btn btn--ghost" onClick={toggle}>
+            {isFullscreen ? "通常表示" : "全画面"}
+          </button>
+          <div className="reader__pageText">
+            {pageDisplayNumber} / {book.pageCount}
+          </div>
         </div>
       </header>
 
-      {/* メイン画像エリア */}
-      <main
-        style={{
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          padding: 16,
-        }}
-      >
+      <main className="reader__main">
         {currentImage ? (
           <img
+            className="reader__image"
             src={currentImage}
             alt={`${book.title} - page ${pageDisplayNumber}`}
-            style={{
-              maxWidth: "100%",
-              maxHeight: "100%",
-              objectFit: "contain",
-              boxShadow: "0 0 16px rgba(0,0,0,0.7)",
-              borderRadius: 4,
-            }}
           />
         ) : (
-          <div style={{ color: "#888" }}>画像を読み込み中...</div>
+          <div className="reader__loading">画像を読み込み中...</div>
         )}
       </main>
 
-      {/* 下部コントロールバー */}
-      <footer
-        style={{
-          borderTop: "1px solid #333",
-          padding: "8px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
-        <button onClick={onPrevPage} disabled={currentPageIndex <= 0}>
-          ◀ 前のページ
+      <footer className="reader__footer">
+        <button
+          className="btn"
+          onClick={onPrevPage}
+          disabled={currentPageIndex <= 0}
+        >
+          ◀ 前
         </button>
 
         <input
+          className="reader__range"
           type="range"
           min={0}
           max={Math.max(book.pageCount - 1, 0)}
           value={currentPageIndex}
           onChange={handleChangeRange}
-          style={{ flex: 1 }}
         />
 
         <button
+          className="btn"
           onClick={onNextPage}
           disabled={currentPageIndex >= book.pageCount - 1}
         >
-          次のページ ▶
+          次 ▶
         </button>
-
-        <div style={{ width: 90, textAlign: "right", fontSize: 12 }}>
-          {pageDisplayNumber} / {book.pageCount}
-        </div>
       </footer>
     </div>
   );

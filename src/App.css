@@ -1,52 +1,419 @@
-/* Library / BookList */
+/* App.css */
+
+/* ===== Theme tokens (app-level) ===== */
+:root {
+  --app-max-width: 1200px;
+
+  --bg: #0f1115;
+  --panel: #151923;
+  --panel-2: #10131a;
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.68);
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+
+  --radius: 14px;
+  --radius-sm: 10px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --panel: #f6f7fb;
+    --panel-2: #ffffff;
+    --text: rgba(0, 0, 0, 0.88);
+    --muted: rgba(0, 0, 0, 0.6);
+    --border: rgba(0, 0, 0, 0.1);
+    --border-strong: rgba(0, 0, 0, 0.16);
+    --shadow: 0 10px 28px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* ===== Library / BookList ===== */
 .library {
-  padding: 16px;
+  min-height: 100%;
+  padding: 24px 16px 48px;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .library__title {
-  margin-bottom: 16px;
+  max-width: var(--app-max-width);
+  margin: 0 auto 16px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
 }
 
 .book-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
+  max-width: var(--app-max-width);
+  margin: 0 auto;
   width: 100%;
+
+  display: grid;
+  gap: 16px;
+
+  /* 160pxだと詰まりやすいので少し広げる */
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 }
 
-/* BookCard */
+/* ===== BookCard ===== */
 .book-card {
   cursor: pointer;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 8px;
+  user-select: none;
+
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+
+  box-shadow: none;
+  transform: translateY(0);
+  transition: transform 120ms ease, border-color 120ms ease,
+    box-shadow 120ms ease, background-color 120ms ease;
+}
+
+.book-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+.book-card:active {
+  transform: translateY(-1px);
 }
 
 .book-card__thumb,
 .book-card__thumbPlaceholder {
-  width: 140px;
-  height: 200px;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  width: 100%;
+  aspect-ratio: 7 / 10; /* 140x200 相当の比率 */
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
   object-fit: cover;
+
+  border: 1px solid var(--border);
+  background: var(--panel-2);
 }
 
+/* 読み込み前のプレースホルダ */
 .book-card__thumbPlaceholder {
-  background: #eee;
+  background: linear-gradient(
+    110deg,
+    rgba(255, 255, 255, 0.06) 8%,
+    rgba(255, 255, 255, 0.12) 18%,
+    rgba(255, 255, 255, 0.06) 33%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position-x: -200%;
+  }
 }
 
 .book-card__title {
-  font-weight: bold;
-  margin-bottom: 4px;
-  text-align: center;
-  width: 100%;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.3;
+  margin: 2px 0 6px;
+
+  /* 長すぎるタイトルでも破綻しない */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 2行で省略 */
+  -webkit-box-orient: vertical;
+
+  text-align: left;
   word-break: break-word;
 }
 
 .book-card__meta {
   font-size: 12px;
-  color: #555;
+  color: var(--muted);
+  margin-top: auto; /* 下に押し込んで高さが揃いやすくする */
+}
+
+/* ===== Common buttons ===== */
+.btn {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 650;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.btn:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0px);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn--primary {
+  border-color: rgba(100, 108, 255, 0.55);
+}
+
+.btn--ghost {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* ===== Library layout additions ===== */
+.library__header {
+  max-width: var(--app-max-width);
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.library__headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.library__subtitle {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.library__content {
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+}
+
+.library__message {
+  color: var(--muted);
+}
+
+.library__empty {
+  margin-top: 24px;
+  padding: 18px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--panel);
+  display: grid;
+  gap: 12px;
+}
+
+/* ===== Reader layout ===== */
+.reader {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.reader__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.reader__title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reader__headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.reader__pageText {
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 72px;
+  text-align: right;
+}
+
+.reader__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 16px;
+}
+
+/* 通常表示（非フルスクリーン） */
+.reader__image {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+
+  object-fit: contain;
+}
+.reader__loading {
+  color: var(--muted);
+}
+
+.reader__footer {
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.reader__range {
+  flex: 1;
+}
+
+/* error fallback */
+.reader--error {
+  align-items: center;
+  justify-content: center;
+}
+
+.reader__errorCard {
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  display: grid;
+  gap: 12px;
+}
+
+/* ===== Fullscreen behavior ===== */
+
+/* 全画面時は上下バーを「重ね表示」にするために position を使う */
+.reader--fs {
+  position: relative;
+}
+
+/* 全画面時：ディスプレイいっぱいに最大化 */
+.reader--fs .reader__main {
+  padding: 0;
+}
+
+/* 上下の透明ホバー領域 */
+.reader__hotzone {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.reader__hotzone--top {
+  top: 0;
+  height: 28px;
+}
+
+.reader__hotzone--bottom {
+  bottom: 0;
+  height: 64px;
+}
+
+/* 全画面時：ヘッダー/フッターを固定のオーバーレイに */
+.reader--fs .reader__header,
+.reader--fs .reader__footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 50;
+
+  /* ふわっと見えるように（背景は少し透過） */
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  backdrop-filter: blur(10px);
+
+  /* 通常時は隠す */
+  opacity: 0;
+  transform: translateY(-6px);
+  pointer-events: none;
+
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.reader--fs .reader__header {
+  top: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.reader--fs .reader__footer {
+  bottom: 0;
+  border-top: 1px solid var(--border);
+  transform: translateY(6px);
+}
+
+/* トリガー：上端にマウスが来たらヘッダー表示 */
+.reader--fs .reader__hotzone--top:hover ~ .reader__header,
+.reader--fs .reader__header:hover {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* トリガー：下端にマウスが来たらフッター表示 */
+.reader--fs
+  .reader__hotzone--bottom:hover
+  ~ .reader__header
+  ~ .reader__main
+  ~ .reader__footer,
+.reader--fs .reader__footer:hover {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* 全画面時は main を上下バーの分だけ詰めない（= 本当に画面いっぱい使う） */
+.reader--fs .reader__main {
+  padding: 0;
+}
+
+.reader--fs .reader__image {
+  width: 100vw;
+  height: 100vh;
+
+  max-width: 100vw;
+  max-height: 100vh;
+
+  object-fit: contain;
+
+  /* 装飾は全画面では不要 */
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
 }
