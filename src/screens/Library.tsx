@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { BookInfo } from "../../types/book";
 import { BookList } from "../components/BookList";
@@ -10,6 +10,11 @@ export default function Library() {
   const [bookList, setBookList] = useState<BookInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const bookCountText = useMemo(() => {
+    if (loading) return "読み込み中…";
+    return `${bookList.length} 冊`;
+  }, [loading, bookList.length]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -20,22 +25,19 @@ export default function Library() {
         setBookList(list);
       } catch (error) {
         console.error("failed to load books", error);
+        toast.error("読み込みに失敗しました");
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     };
 
     run();
-
     return () => {
       cancelled = true;
     };
   }, []);
 
   const handleClickBook = (book: BookInfo) => {
-    // 好みで state に book 情報を渡してもOK
     nav(`/book/${book.id}`, { state: { book } });
   };
 
@@ -43,12 +45,21 @@ export default function Library() {
     const folder = await window.mangata.pickFolder();
     const t = toast.loading("登録中...");
     try {
-      if (!folder) return;
+      if (!folder) {
+        toast.dismiss(t);
+        return;
+      }
+
       const ok = await window.mangata.addFolder(folder);
       if (!ok) {
         toast.error("登録できませんでした", { id: t });
         return;
       }
+
+      // 追加したら一覧を再読込（最小変更で確実）
+      const list = (await window.mangata.listFolder()) ?? [];
+      setBookList(list);
+
       toast.success("登録しました", { id: t });
     } catch (error) {
       console.error(error);
@@ -58,16 +69,33 @@ export default function Library() {
 
   return (
     <div className="library">
-      <button onClick={handleRegisterFolder}>📂 フォルダ選択</button>
+      <header className="library__header">
+        <div className="library__headerLeft">
+          <div className="library__subtitle">{bookCountText}</div>
+        </div>
 
-      <h1 className="library__title">Library</h1>
+        <div className="library__headerRight">
+          <button className="btn btn--primary" onClick={handleRegisterFolder}>
+            📂 フォルダ追加
+          </button>
+        </div>
+      </header>
 
-      {loading && <p>読み込み中...</p>}
-      {!loading && bookList.length === 0 && <p>まだ本が登録されていません。</p>}
+      <section className="library__content">
+        {loading && <p className="library__message">読み込み中...</p>}
+        {!loading && bookList.length === 0 && (
+          <div className="library__empty">
+            <p className="library__message">まだ本が登録されていません。</p>
+            <button className="btn" onClick={handleRegisterFolder}>
+              📂 フォルダを追加する
+            </button>
+          </div>
+        )}
 
-      {!loading && bookList.length > 0 && (
-        <BookList books={bookList} onClickBook={handleClickBook} />
-      )}
+        {!loading && bookList.length > 0 && (
+          <BookList books={bookList} onClickBook={handleClickBook} />
+        )}
+      </section>
     </div>
   );
 }
