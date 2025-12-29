@@ -13,7 +13,7 @@ declare global {
     mangata: {
       ping: () => string;
       pickFolder: () => Promise<string | null>;
-      addFolder: (absPath: string) => Promise<AddFolderResult>;
+      addFolder: (absPath: string, title: string) => Promise<AddFolderResult>;
       listFolder: () => Promise<BookInfo[] | null>;
       loadImage: (filePath: string) => Promise<string>;
       loadBook: (bookId: string, pageIndex: number) => Promise<ImagePayload>;

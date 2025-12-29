@@ -34,8 +34,8 @@ electron_1.ipcMain.handle("pick-folder", async () => {
     });
     return result.filePaths[0];
 });
-electron_1.ipcMain.handle("add-folder", async (_event, absPath) => {
-    return (0, importer_1.importFolder)(absPath);
+electron_1.ipcMain.handle("add-folder", async (_event, absPath, title) => {
+    return (0, importer_1.importFolder)(absPath, title);
 });
 electron_1.ipcMain.handle("list-folder", async () => {
     return (0, importer_1.listBooks)();
