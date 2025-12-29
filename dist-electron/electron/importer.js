@@ -30,9 +30,8 @@ function scanFolder(folderPath) {
     return files;
 }
 // booksとimagesへの登録処理
-exports.importFolder = db_1.default.transaction((absPath) => {
+exports.importFolder = db_1.default.transaction((absPath, title) => {
     const files = scanFolder(absPath);
-    const title = path_1.default.basename(absPath);
     const cover = files[0];
     // booksの登録
     const insertBooks = db_1.default.prepare(`

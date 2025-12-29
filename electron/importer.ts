@@ -35,9 +35,8 @@ export function scanFolder(folderPath: string) {
 }
 
 // booksとimagesへの登録処理
-export const importFolder = db.transaction((absPath: string) => {
+export const importFolder = db.transaction((absPath: string, title: string) => {
   const files = scanFolder(absPath);
-  const title = path.basename(absPath);
   const cover = files[0];
 
   // booksの登録

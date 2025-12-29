@@ -41,8 +41,8 @@ ipcMain.handle("pick-folder", async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle("add-folder", async (_event, absPath: string) => {
-  return importFolder(absPath);
+ipcMain.handle("add-folder", async (_event, absPath: string, title: string) => {
+  return importFolder(absPath, title);
 });
 
 ipcMain.handle("list-folder", async () => {
