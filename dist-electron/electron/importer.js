@@ -10,6 +10,8 @@ exports.getBookImagePayload = getBookImagePayload;
 exports.updateLastPage = updateLastPage;
 exports.getBook = getBook;
 exports.getBookThumbnail = getBookThumbnail;
+exports.renameBook = renameBook;
+exports.removeBook = removeBook;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const db_1 = __importDefault(require("./db"));
@@ -148,4 +150,16 @@ async function getBookThumbnail(bookId) {
     catch {
         return null;
     }
+}
+// 本のタイトル編集
+function renameBook(bookId, title) {
+    const stmt = db_1.default.prepare(`UPDATE books SET title = ? WHERE id = ?`);
+    const info = stmt.run(title, bookId);
+    return info.changes === 1; // 0なら該当なし、1なら更新できた
+}
+// 本の削除
+function removeBook(bookId) {
+    const stmt = db_1.default.prepare(`DELETE FROM books WHERE id = ?`);
+    const info = stmt.run(bookId);
+    return info.changes === 1; // 0なら該当なし、1なら更新できた
 }
