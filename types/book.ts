@@ -30,3 +30,9 @@ export type CacheEntry = {
   objectUrl: string;
   mimeType: string;
 };
+
+export type LibraryInfo = {
+  id: string;
+  title: string;
+  folderPath?: string;
+};

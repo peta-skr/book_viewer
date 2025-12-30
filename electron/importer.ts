@@ -192,3 +192,19 @@ export async function getBookThumbnail(
     return null;
   }
 }
+
+// 本のタイトル編集
+export function renameBook(bookId: string, title: string): boolean {
+  const stmt = db.prepare(`UPDATE books SET title = ? WHERE id = ?`);
+  const info = stmt.run(title, bookId);
+
+  return info.changes === 1; // 0なら該当なし、1なら更新できた
+}
+
+// 本の削除
+export function removeBook(bookId: string): boolean {
+  const stmt = db.prepare(`DELETE FROM books WHERE id = ?`);
+  const info = stmt.run(bookId);
+
+  return info.changes === 1; // 0なら該当なし、1なら更新できた
+}

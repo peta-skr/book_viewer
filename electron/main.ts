@@ -6,6 +6,8 @@ import {
   getBookThumbnail,
   importFolder,
   listBooks,
+  removeBook,
+  renameBook,
   scanFolder,
   updateLastPage,
 } from "./importer";
@@ -79,6 +81,16 @@ ipcMain.handle(
 
 ipcMain.handle("load-thumbnail", async (_event, bookId: string) => {
   return getBookThumbnail(bookId);
+});
+
+ipcMain.handle("rename-book", (_event, bookId: string, title: string) => {
+  const ok = renameBook(bookId, title);
+  return ok;
+});
+
+ipcMain.handle("remove-book", (_event, bookId: string) => {
+  const ok = removeBook(bookId);
+  return ok;
 });
 
 app.whenReady().then(createWindow);

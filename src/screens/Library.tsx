@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { BookInfo } from "../../types/book";
+import type { BookInfo, LibraryInfo } from "../../types/book";
 import { BookList } from "../components/BookList";
 import toast from "react-hot-toast";
 
@@ -14,6 +14,14 @@ export default function Library() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [pickedFolder, setPickedFolder] = useState<string>("");
   const [newTitle, setNewTitle] = useState<string>("");
+
+  // メニュー/モーダル state
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
+  const [renameTarget, setRenameTarget] = useState<BookInfo | null>(null);
+  const [renameTitle, setRenameTitle] = useState("");
+
+  const [deleteTarget, setDeleteTarget] = useState<BookInfo | null>(null);
 
   const bookCountText = useMemo(() => {
     if (loading) return "読み込み中…";
@@ -95,31 +103,59 @@ export default function Library() {
     }
   };
 
-  // async function handleRegisterFolder() {
-  //   const folder = await window.mangata.pickFolder();
-  //   const t = toast.loading("登録中...");
-  //   try {
-  //     if (!folder) {
-  //       toast.dismiss(t);
-  //       return;
-  //     }
+  const openRename = (lib: BookInfo) => {
+    setMenuOpenId(null);
+    setRenameTarget(lib);
+    setRenameTitle(lib.title ?? "");
+  };
 
-  //     const ok = await window.mangata.addFolder(folder);
-  //     if (!ok) {
-  //       toast.error("登録できませんでした", { id: t });
-  //       return;
-  //     }
+  const submitRename = async () => {
+    if (!renameTarget) return;
+    const next = renameTitle.trim();
+    if (!next) return;
 
-  //     // 追加したら一覧を再読込（最小変更で確実）
-  //     const list = (await window.mangata.listFolder()) ?? [];
-  //     setBookList(list);
+    const t = toast.loading("更新中...");
+    try {
+      const ok = await window.mangata.renameBook(String(renameTarget.id), next);
+      if (!ok) {
+        console.log(ok);
+        toast.error("更新できませんでした", { id: t });
+        return;
+      }
+      toast.success("更新しました", { id: t });
+      setRenameTarget(null);
+      await reload();
+    } catch (error) {
+      console.error(error);
+      toast.error("更新できませんでした", { id: t });
+    }
+  };
 
-  //     toast.success("登録しました", { id: t });
-  //   } catch (error) {
-  //     console.error(error);
-  //     toast.error("登録できませんでした", { id: t });
-  //   }
-  // }
+  const openDelete = (lib: BookInfo) => {
+    setMenuOpenId(null);
+    setDeleteTarget(lib);
+  };
+
+  const submitDelete = async () => {
+    if (!deleteTarget) return;
+
+    const t = toast.loading("削除中...");
+
+    try {
+      const ok = await window.mangata.removeBook(String(deleteTarget.id));
+
+      if (!ok) {
+        toast.error("削除できませんでした", { id: t });
+        return;
+      }
+      toast.success("削除しました", { id: t });
+      setDeleteTarget(null);
+      await reload();
+    } catch (error) {
+      console.error(error);
+      toast.error("削除できませんでした", { id: t });
+    }
+  };
 
   return (
     <div className="library">
@@ -146,7 +182,15 @@ export default function Library() {
           </div>
         )}
         {!loading && bookList.length > 0 && (
-          <BookList books={bookList} onClickBook={handleClickBook} />
+          <BookList
+            books={bookList}
+            onClickBook={handleClickBook}
+            onRenameBook={(b: BookInfo) => {
+              setRenameTarget(b);
+              setRenameTitle(b.title ?? "");
+            }}
+            onRemoveBook={(b: BookInfo) => setDeleteTarget(b)}
+          />
         )}
       </section>
 
@@ -195,6 +239,93 @@ export default function Library() {
                 onClick={submitAdd}
               >
                 登録
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* リネームモーダル */}
+      {renameTarget && (
+        <div
+          className="modal__backdrop"
+          onMouseDown={() => setRenameTarget(null)}
+        >
+          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <div className="modal__title">ライブラリ名の変更</div>
+              <button
+                className="btn btn--ghost"
+                onClick={() => setRenameTarget(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal__body">
+              <div className="field">
+                <div className="field__label">新しいタイトル</div>
+                <input
+                  className="input"
+                  value={renameTitle}
+                  onChange={(e) => setRenameTitle(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="modal__footer">
+              <button
+                className="btn btn--ghost"
+                onClick={() => setRenameTarget(null)}
+              >
+                キャンセル
+              </button>
+              <button
+                className="btn btn--primary"
+                onClick={submitRename}
+                disabled={!renameTitle.trim()}
+              >
+                更新
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 削除（登録解除）確認モーダル */}
+      {deleteTarget && (
+        <div
+          className="modal__backdrop"
+          onMouseDown={() => setDeleteTarget(null)}
+        >
+          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="modal__header">
+              <div className="modal__title">ライブラリの登録解除</div>
+              <button
+                className="btn btn--ghost"
+                onClick={() => setDeleteTarget(null)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="modal__body">
+              <p className="library__message">
+                「{deleteTarget.title}」を登録解除します。
+                <br />
+                <strong>PC内のファイルは削除されません。</strong>
+              </p>
+            </div>
+
+            <div className="modal__footer">
+              <button
+                className="btn btn--ghost"
+                onClick={() => setDeleteTarget(null)}
+              >
+                キャンセル
+              </button>
+              <button className="btn btn--primary" onClick={submitDelete}>
+                登録解除
               </button>
             </div>
           </div>

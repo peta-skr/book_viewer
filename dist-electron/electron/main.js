@@ -59,4 +59,12 @@ electron_1.ipcMain.handle("update-last-page", (_event, bookId, pageIndex) => {
 electron_1.ipcMain.handle("load-thumbnail", async (_event, bookId) => {
     return (0, importer_1.getBookThumbnail)(bookId);
 });
+electron_1.ipcMain.handle("rename-book", (_event, bookId, title) => {
+    const ok = (0, importer_1.renameBook)(bookId, title);
+    return ok;
+});
+electron_1.ipcMain.handle("remove-book", (_event, bookId) => {
+    const ok = (0, importer_1.removeBook)(bookId);
+    return ok;
+});
 electron_1.app.whenReady().then(createWindow);
