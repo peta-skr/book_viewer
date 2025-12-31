@@ -37,14 +37,14 @@ exports.importFolder = db_1.default.transaction((absPath, title) => {
     const cover = files[0];
     // booksの登録
     const insertBooks = db_1.default.prepare(`
-    INSERT INTO books (title, folder_path, cover_path ,page_count, last_page_index)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO books (title, folder_path, cover_path ,page_count, last_page_index, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(folder_path) DO UPDATE SET
       title=excluded.title,
       cover_path=excluded.cover_path,
       page_count=excluded.page_count
     `);
-    const { lastInsertRowid } = insertBooks.run(title, absPath, cover, files.length, 0);
+    const { lastInsertRowid } = insertBooks.run(title, absPath, cover, files.length, 0, Date.now());
     // bookIDの取得
     const bookId = Number(lastInsertRowid) ||
         db_1.default.prepare("SELECT id FROM books WHERE folder_path=?").get(absPath).id;
@@ -99,7 +99,7 @@ exports.importFolder = db_1.default.transaction((absPath, title) => {
 // 一覧表示取得
 async function listBooks() {
     let rows = db_1.default
-        .prepare(`SELECT id, title, page_count, last_page_index, cover_path, folder_path
+        .prepare(`SELECT id, title, page_count, last_page_index, cover_path, folder_path, created_at
     FROM books
     ORDER BY id DESC`)
         .all();
@@ -111,6 +111,7 @@ async function listBooks() {
         coverPath: r.cover_path,
         folderPath: r.folder_path,
         mimeType: (0, lib_1.guessMimeType)(r.cover_path),
+        createdAt: r.created_at,
     }));
 }
 // 特定の本の画像を取得
