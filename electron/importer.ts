@@ -41,8 +41,8 @@ export const importFolder = db.transaction((absPath: string, title: string) => {
 
   // booksの登録
   const insertBooks = db.prepare(`
-    INSERT INTO books (title, folder_path, cover_path ,page_count, last_page_index)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO books (title, folder_path, cover_path ,page_count, last_page_index, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(folder_path) DO UPDATE SET
       title=excluded.title,
       cover_path=excluded.cover_path,
@@ -54,7 +54,8 @@ export const importFolder = db.transaction((absPath: string, title: string) => {
     absPath,
     cover,
     files.length,
-    0
+    0,
+    Date.now()
   );
 
   // bookIDの取得
@@ -124,7 +125,7 @@ export const importFolder = db.transaction((absPath: string, title: string) => {
 export async function listBooks(): Promise<BookInfo[]> {
   let rows = db
     .prepare(
-      `SELECT id, title, page_count, last_page_index, cover_path, folder_path
+      `SELECT id, title, page_count, last_page_index, cover_path, folder_path, created_at
     FROM books
     ORDER BY id DESC`
     )
@@ -138,6 +139,7 @@ export async function listBooks(): Promise<BookInfo[]> {
     coverPath: r.cover_path,
     folderPath: r.folder_path,
     mimeType: guessMimeType(r.cover_path),
+    createdAt: r.created_at,
   }));
 }
 

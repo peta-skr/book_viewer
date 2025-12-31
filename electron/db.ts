@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS books (
     folder_path TEXT NOT NULL UNIQUE,
     cover_path TEXT NOT NULL,
     page_count INTEGER NOT NULL,
-    last_page_index INTEGER NOT NULL DEFAULT 0
+    last_page_index INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s','now') * 1000)
 );
 CREATE TABLE IF NOT EXISTS images (
   id INTEGER PRIMARY KEY,

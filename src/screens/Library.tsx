@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { BookInfo, LibraryInfo } from "../../types/book";
+import type { BookInfo, LibraryInfo, LibrarySortValue } from "../../types/book";
 import { BookList } from "../components/BookList";
 import toast from "react-hot-toast";
 import { LibrarySearchBar } from "../components/SearchBar";
+import { LibrarySortControl } from "../components/LibrarySortControl";
 
 export default function Library() {
   const nav = useNavigate();
@@ -23,6 +24,9 @@ export default function Library() {
   const [renameTitle, setRenameTitle] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState<BookInfo | null>(null);
+
+  // ソート
+  const [sort, setSort] = useState<LibrarySortValue>("created_desc");
 
   // 検索
   const [search, setSearch] = useState("");
@@ -168,6 +172,28 @@ export default function Library() {
     return bookList.filter((b) => b.title?.toLowerCase().includes(q));
   }, [bookList, search]);
 
+  const sortedBooks = useMemo(() => {
+    const list = [...filteredBooks];
+    console.log(list);
+
+    switch (sort) {
+      case "title_asc":
+        return list.sort((a, b) =>
+          (a.title ?? "").localeCompare(b.title ?? "")
+        );
+      case "title_desc":
+        return list.sort((a, b) =>
+          (b.title ?? "").localeCompare(a.title ?? "")
+        );
+      case "created_asc":
+        return list.sort((a, b) => a.createdAt - b.createdAt);
+      case "created_desc":
+        return list.sort((a, b) => b.createdAt - a.createdAt);
+      default:
+        return list;
+    }
+  }, [filteredBooks, sort]);
+
   return (
     <div className="library">
       <header className="library__header">
@@ -182,6 +208,7 @@ export default function Library() {
           <div className="library__subtitle">{bookCountText}</div>
         </div>
         <div className="library__headerRight">
+          <LibrarySortControl value={sort} onChange={setSort} />
           <button className="btn btn--primary" onClick={openAddModal}>
             ＋ ライブラリ追加
           </button>
@@ -206,7 +233,7 @@ export default function Library() {
 
         {!loading && bookList.length > 0 && (
           <BookList
-            books={filteredBooks}
+            books={sortedBooks}
             onClickBook={handleClickBook}
             onRenameBook={(b: BookInfo) => {
               setRenameTarget(b);

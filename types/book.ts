@@ -6,6 +6,7 @@ export type BookInfo = {
   coverPath: string;
   folderPath: string;
   mimeType: string;
+  createdAt: number;
 };
 
 export type ImageInfo = {
@@ -36,3 +37,9 @@ export type LibraryInfo = {
   title: string;
   folderPath?: string;
 };
+
+export type LibrarySortValue =
+  | "title_asc"
+  | "title_desc"
+  | "created_desc"
+  | "created_asc";
