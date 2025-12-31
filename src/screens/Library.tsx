@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { BookInfo, LibraryInfo } from "../../types/book";
 import { BookList } from "../components/BookList";
 import toast from "react-hot-toast";
+import { LibrarySearchBar } from "../components/SearchBar";
 
 export default function Library() {
   const nav = useNavigate();
@@ -22,6 +23,9 @@ export default function Library() {
   const [renameTitle, setRenameTitle] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState<BookInfo | null>(null);
+
+  // 検索
+  const [search, setSearch] = useState("");
 
   const bookCountText = useMemo(() => {
     if (loading) return "読み込み中…";
@@ -157,11 +161,24 @@ export default function Library() {
     }
   };
 
+  const filteredBooks = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return bookList;
+
+    return bookList.filter((b) => b.title?.toLowerCase().includes(q));
+  }, [bookList, search]);
+
   return (
     <div className="library">
       <header className="library__header">
         <div className="library__headerLeft">
-          <h1 className="library__title">Library</h1>
+          <LibrarySearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder="タイトルで検索"
+            totalCount={bookList.length}
+            filteredCount={filteredBooks.length}
+          />
           <div className="library__subtitle">{bookCountText}</div>
         </div>
         <div className="library__headerRight">
@@ -181,9 +198,15 @@ export default function Library() {
             </button>
           </div>
         )}
+        {!loading && filteredBooks.length === 0 && (
+          <p className="library__message">
+            「{search}」に一致する本はありません
+          </p>
+        )}
+
         {!loading && bookList.length > 0 && (
           <BookList
-            books={bookList}
+            books={filteredBooks}
             onClickBook={handleClickBook}
             onRenameBook={(b: BookInfo) => {
               setRenameTarget(b);
