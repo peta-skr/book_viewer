@@ -12,4 +12,6 @@ electron_1.contextBridge.exposeInMainWorld("mangata", {
     loadThumbnail: (bookId) => electron_1.ipcRenderer.invoke("load-thumbnail", bookId),
     renameBook: (bookId, title) => electron_1.ipcRenderer.invoke("rename-book", bookId, title),
     removeBook: (bookId) => electron_1.ipcRenderer.invoke("remove-book", bookId),
+    existBook: (folderPath) => electron_1.ipcRenderer.invoke("exist-book", folderPath),
+    overwriteBook: (folderPath, title) => electron_1.ipcRenderer.invoke("overwrite-book", folderPath, title),
 });

@@ -16,4 +16,8 @@ contextBridge.exposeInMainWorld("mangata", {
   renameBook: (bookId: string, title: string) =>
     ipcRenderer.invoke("rename-book", bookId, title),
   removeBook: (bookId: string) => ipcRenderer.invoke("remove-book", bookId),
+  existBook: (folderPath: string) =>
+    ipcRenderer.invoke("exist-book", folderPath),
+  overwriteBook: (folderPath: string, title: string) =>
+    ipcRenderer.invoke("overwrite-book", folderPath, title),
 });

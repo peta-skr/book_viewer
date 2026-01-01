@@ -67,4 +67,12 @@ electron_1.ipcMain.handle("remove-book", (_event, bookId) => {
     const ok = (0, importer_1.removeBook)(bookId);
     return ok;
 });
+electron_1.ipcMain.handle("exist-book", (_event, folderPath) => {
+    const result = (0, importer_1.findBookByFolderPath)(folderPath);
+    return result;
+});
+electron_1.ipcMain.handle("overwrite-book", (_event, absPath, title) => {
+    const result = (0, importer_1.overwriteBookByFolderPath)(absPath, title);
+    return result;
+});
 electron_1.app.whenReady().then(createWindow);

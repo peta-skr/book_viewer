@@ -5,6 +5,7 @@ import { BookList } from "../components/BookList";
 import toast from "react-hot-toast";
 import { LibrarySearchBar } from "../components/SearchBar";
 import { LibrarySortControl } from "../components/LibrarySortControl";
+import { ConfirmModal } from "../components/ComfirmModal";
 
 export default function Library() {
   const nav = useNavigate();
@@ -30,6 +31,13 @@ export default function Library() {
 
   // 検索
   const [search, setSearch] = useState("");
+
+  // 更新
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingOverwrite, setPendingOverwrite] = useState<{
+    folder: string;
+    title: string;
+  } | null>(null);
 
   const bookCountText = useMemo(() => {
     if (loading) return "読み込み中…";
@@ -92,14 +100,28 @@ export default function Library() {
     pickedFolder.trim().length > 0 && newTitle.trim().length > 0;
 
   const submitAdd = async () => {
-    console.log(newTitle);
-
     const t = toast.loading("登録中...");
-    try {
-      const ok = await window.mangata.addFolder(pickedFolder, newTitle.trim());
 
+    try {
+      const title = newTitle.trim();
+      if (!pickedFolder || !title) {
+        toast.error("タイトルとフォルダを指定してください", { id: t });
+        return;
+      }
+
+      const existing = await window.mangata.existBook(pickedFolder);
+
+      if (existing) {
+        toast.dismiss(t); // 登録中toastを消す
+        setPendingOverwrite({ folder: pickedFolder, title });
+        setConfirmOpen(true);
+        return;
+      }
+
+      const ok = await window.mangata.addFolder(pickedFolder, title);
       if (!ok) {
         toast.error("登録できませんでした", { id: t });
+        return;
       }
 
       await reload();
@@ -294,53 +316,52 @@ export default function Library() {
           </div>
         </div>
       )}
-      {/* リネームモーダル */}
-      {renameTarget && (
-        <div
-          className="modal__backdrop"
-          onMouseDown={() => setRenameTarget(null)}
-        >
-          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="modal__header">
-              <div className="modal__title">ライブラリ名の変更</div>
-              <button
-                className="btn btn--ghost"
-                onClick={() => setRenameTarget(null)}
-              >
-                ✕
-              </button>
-            </div>
 
-            <div className="modal__body">
-              <div className="field">
-                <div className="field__label">新しいタイトル</div>
-                <input
-                  className="input"
-                  value={renameTitle}
-                  onChange={(e) => setRenameTitle(e.target.value)}
-                  autoFocus
-                />
-              </div>
-            </div>
+      {/* 上書き確認モーダル */}
+      <ConfirmModal
+        open={confirmOpen}
+        title="上書き確認"
+        message={
+          <>
+            このフォルダは既に登録されています。
+            <br />
+            上書きしますか？
+          </>
+        }
+        cancelText="キャンセル"
+        confirmText="上書きする"
+        danger
+        onCancel={() => {
+          setConfirmOpen(false);
+          setPendingOverwrite(null);
+        }}
+        onConfirm={async () => {
+          if (!pendingOverwrite) return;
 
-            <div className="modal__footer">
-              <button
-                className="btn btn--ghost"
-                onClick={() => setRenameTarget(null)}
-              >
-                キャンセル
-              </button>
-              <button
-                className="btn btn--primary"
-                onClick={submitRename}
-                disabled={!renameTitle.trim()}
-              >
-                更新
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          const t = toast.loading("登録中...");
+          try {
+            const result = await window.mangata.overwriteBook(
+              pendingOverwrite.folder,
+              pendingOverwrite.title
+            );
+
+            if (!result.ok) {
+              toast.error("登録できませんでした", { id: t });
+              return;
+            }
+
+            await reload();
+            toast.success("登録しました", { id: t });
+            closeAddModal();
+          } catch (e) {
+            console.error(e);
+            toast.error("登録できませんでした", { id: t });
+          } finally {
+            setConfirmOpen(false);
+            setPendingOverwrite(null);
+          }
+        }}
+      />
 
       {/* 削除（登録解除）確認モーダル */}
       {deleteTarget && (

@@ -21,6 +21,11 @@ declare global {
       loadThumbnail: (bookId: string) => Promise<Uint8Array>;
       renameBook: (bookId: string, title: string) => boolean;
       removeBook: (bookId: string) => boolean;
+      existBook: (absPath: string) => boolean;
+      overwriteBook: (
+        absPath: string,
+        title: string
+      ) => { ok: boolean; bookId: string };
     };
   }
 }

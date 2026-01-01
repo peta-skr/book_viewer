@@ -2,10 +2,12 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import path from "node:path";
 import {
+  findBookByFolderPath,
   getBookImagePayload,
   getBookThumbnail,
   importFolder,
   listBooks,
+  overwriteBookByFolderPath,
   removeBook,
   renameBook,
   scanFolder,
@@ -91,6 +93,16 @@ ipcMain.handle("rename-book", (_event, bookId: string, title: string) => {
 ipcMain.handle("remove-book", (_event, bookId: string) => {
   const ok = removeBook(bookId);
   return ok;
+});
+
+ipcMain.handle("exist-book", (_event, folderPath: string) => {
+  const result = findBookByFolderPath(folderPath);
+  return result;
+});
+
+ipcMain.handle("overwrite-book", (_event, absPath: string, title: string) => {
+  const result = overwriteBookByFolderPath(absPath, title);
+  return result;
 });
 
 app.whenReady().then(createWindow);
