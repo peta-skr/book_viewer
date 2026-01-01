@@ -210,3 +210,37 @@ export function removeBook(bookId: string): boolean {
 
   return info.changes === 1; // 0なら該当なし、1なら更新できた
 }
+
+// 既存チェック
+export function findBookByFolderPath(folderPath: string) {
+  const row = db
+    .prepare(
+      `SELECT id, title, folder_path, cover_path, page_count, last_page_index, created_at
+              FROM books WHERE folder_path = ?`
+    )
+    .get(folderPath);
+
+  return row ?? null;
+}
+
+// 上書き
+export function overwriteBookByFolderPath(folderPath: string, title: string) {
+  const files = scanFolder(folderPath);
+  const cover = files[0];
+  const info = db
+    .prepare(`SELECT id FROM books WHERE folder_path = ?`)
+    .get(folderPath);
+  if (!info) return { ok: false as const, reason: "NOT_FOUND" as const };
+
+  const result = db
+    .prepare(
+      `
+    UPDATE books
+    SET title = ?, cover_path = ?, page_count = ?, last_page_index = 0
+    WHERE folder_path = ?
+  `
+    )
+    .run(title, cover, files.length, folderPath);
+
+  return { ok: result.changes === 1, bookId: String(info.id) };
+}

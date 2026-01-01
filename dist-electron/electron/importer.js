@@ -12,6 +12,8 @@ exports.getBook = getBook;
 exports.getBookThumbnail = getBookThumbnail;
 exports.renameBook = renameBook;
 exports.removeBook = removeBook;
+exports.findBookByFolderPath = findBookByFolderPath;
+exports.overwriteBookByFolderPath = overwriteBookByFolderPath;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const db_1 = __importDefault(require("./db"));
@@ -163,4 +165,30 @@ function removeBook(bookId) {
     const stmt = db_1.default.prepare(`DELETE FROM books WHERE id = ?`);
     const info = stmt.run(bookId);
     return info.changes === 1; // 0なら該当なし、1なら更新できた
+}
+// 既存チェック
+function findBookByFolderPath(folderPath) {
+    const row = db_1.default
+        .prepare(`SELECT id, title, folder_path, cover_path, page_count, last_page_index, created_at
+              FROM books WHERE folder_path = ?`)
+        .get(folderPath);
+    return row ?? null;
+}
+// 上書き
+function overwriteBookByFolderPath(folderPath, title) {
+    const files = scanFolder(folderPath);
+    const cover = files[0];
+    const info = db_1.default
+        .prepare(`SELECT id FROM books WHERE folder_path = ?`)
+        .get(folderPath);
+    if (!info)
+        return { ok: false, reason: "NOT_FOUND" };
+    const result = db_1.default
+        .prepare(`
+    UPDATE books
+    SET title = ?, cover_path = ?, page_count = ?, last_page_index = 0
+    WHERE folder_path = ?
+  `)
+        .run(title, cover, files.length, folderPath);
+    return { ok: result.changes === 1, bookId: String(info.id) };
 }
