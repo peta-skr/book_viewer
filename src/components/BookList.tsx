@@ -1,4 +1,4 @@
-import type { BookInfo, LibraryInfo } from "../../types/book";
+import type { BookInfo } from "../../types/book";
 import { BookCard } from "./BookCard";
 
 type Props = {
