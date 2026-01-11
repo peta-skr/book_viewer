@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import type { BookInfo } from "../../types/book";
+import { mangataClient } from "../services/mangataClient";
 
 export function useRemoveLibrary(params: { reload: () => Promise<void> }) {
   const { reload } = params;
@@ -14,7 +15,7 @@ export function useRemoveLibrary(params: { reload: () => Promise<void> }) {
 
     const t = toast.loading("削除中...");
     try {
-      const ok = await window.mangata.removeBook(String(target.id));
+      const ok = await mangataClient.removeBook(String(target.id));
       if (!ok) {
         toast.error("削除できませんでした", { id: t });
         return;
