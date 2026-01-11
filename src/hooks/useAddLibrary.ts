@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { folderBaseName } from "../utils/path";
+import { mangataClient } from "../services/mangataClient";
 
 export function useAddLibrary(params: { reload: () => Promise<void> }) {
   const { reload } = params;
@@ -9,16 +10,16 @@ export function useAddLibrary(params: { reload: () => Promise<void> }) {
   const [pickedFolder, setPickedFolder] = useState("");
   const [title, setTitle] = useState("");
 
-  // overwrite confirm
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pending, setPending] = useState<{
     folder: string;
     title: string;
   } | null>(null);
 
-  const canSubmit = useMemo(() => {
-    return pickedFolder.trim().length > 0 && title.trim().length > 0;
-  }, [pickedFolder, title]);
+  const canSubmit = useMemo(
+    () => pickedFolder.trim().length > 0 && title.trim().length > 0,
+    [pickedFolder, title]
+  );
 
   const openModal = useCallback(() => {
     setPickedFolder("");
@@ -29,7 +30,7 @@ export function useAddLibrary(params: { reload: () => Promise<void> }) {
   const closeModal = useCallback(() => setOpen(false), []);
 
   const pickFolder = useCallback(async () => {
-    const folder = await window.mangata.pickFolder();
+    const folder = await mangataClient.pickFolder();
     if (!folder) return;
 
     setPickedFolder(folder);
@@ -48,7 +49,7 @@ export function useAddLibrary(params: { reload: () => Promise<void> }) {
         return;
       }
 
-      const exists = await window.mangata.existBook(folder);
+      const exists = await mangataClient.existBook(folder);
       if (exists) {
         toast.dismiss(t);
         setPending({ folder, title: nextTitle });
@@ -56,7 +57,7 @@ export function useAddLibrary(params: { reload: () => Promise<void> }) {
         return;
       }
 
-      const ok = await window.mangata.addFolder(folder, nextTitle);
+      const ok = await mangataClient.addFolder(folder, nextTitle);
       if (!ok) {
         toast.error("登録できませんでした", { id: t });
         return;
@@ -81,7 +82,7 @@ export function useAddLibrary(params: { reload: () => Promise<void> }) {
 
     const t = toast.loading("登録中...");
     try {
-      const result = await window.mangata.overwriteBook(
+      const result = await mangataClient.overwriteBook(
         pending.folder,
         pending.title
       );

@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { BookInfo } from "../../types/book";
+import { mangataClient } from "../services/mangataClient";
 
 export function useBooks() {
   const [bookList, setBookList] = useState<BookInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchBooks = useCallback(async () => {
-    const list = (await window.mangata.listFolder()) ?? [];
-    return list as BookInfo[];
+    return await mangataClient.listFolder();
   }, []);
 
   const reload = useCallback(async () => {

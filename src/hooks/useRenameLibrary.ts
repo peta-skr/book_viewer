@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import type { BookInfo } from "../../types/book";
+import { mangataClient } from "../services/mangataClient";
 
 export function useRenameLibrary(params: { reload: () => Promise<void> }) {
   const { reload } = params;
@@ -23,7 +24,7 @@ export function useRenameLibrary(params: { reload: () => Promise<void> }) {
 
     const t = toast.loading("更新中...");
     try {
-      const ok = await window.mangata.renameBook(String(target.id), next);
+      const ok = await mangataClient.renameBook(String(target.id), next);
       if (!ok) {
         toast.error("更新できませんでした", { id: t });
         return;

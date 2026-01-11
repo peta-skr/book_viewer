@@ -11,7 +11,6 @@ type AddFolderResult = {
 declare global {
   interface Window {
     mangata: {
-      ping: () => string;
       pickFolder: () => Promise<string | null>;
       addFolder: (absPath: string, title: string) => Promise<AddFolderResult>;
       listFolder: () => Promise<BookInfo[] | null>;
